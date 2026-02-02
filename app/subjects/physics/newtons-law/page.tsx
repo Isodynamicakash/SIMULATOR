@@ -1,5 +1,4 @@
-import SubjectPage, { Topic } from "../../../components/SubjectPage";
-
+import SubjectPage, { Topic } from "../../../../components/SubjectPage";
 const newtonsLawsTopics: Topic[] = [
   {
     title: "First Law (Inertia)",
