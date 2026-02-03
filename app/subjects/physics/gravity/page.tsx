@@ -1,238 +1,640 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from "react";
 
-/* ---------- TYPES (REQUIRED FOR BUILD) ---------- */
-
-type Planet = {
-  id: number;
-  name: string;
-  color: string;
-  baseMass: number;
-  baseDistance: number;
-  baseSize: number;
-  baseSpeed: number;
-  angle: number;
+type GravityParams = {
+  /** Gravitational acceleration (m/s^2) */
+  g: number;
+  /** Initial height above ground (m) */
+  h0: number;
+  /** Initial vertical velocity (m/s), +upwards */
+  v0: number;
+  /** Coefficient of restitution for bounce (unitless, 0–1) */
+  e: number;
 };
 
-type PlanetStat = {
-  id: number;
-  name: string;
-  mass: number;
-  distance: number;
-  speed: number;
-  size: number;
-  massMultiplier: number;
+type SimState = {
+  /** Height above ground (m) */
+  y: number;
+  /** Vertical velocity (m/s), +upwards */
+  v: number;
+  /** Elapsed simulation time (s) */
+  t: number;
 };
 
-/* ---------- COMPONENT ---------- */
+const DEFAULT_PARAMS: GravityParams = {
+  g: 9.81,
+  h0: 30,
+  v0: 0,
+  e: 0.55,
+};
 
-export default function GravitySimulator() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const requestRef = useRef<number | null>(null);
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
 
-  const [planetMasses, setPlanetMasses] = useState<Record<number, number>>({
-    0: 1,
-    1: 1,
-    2: 1,
-  });
+function formatNumber(n: number, digits = 2) {
+  if (!Number.isFinite(n)) return "—";
+  return n.toFixed(digits);
+}
 
-  const [activePlanets, setActivePlanets] = useState<number[]>([0, 1, 2]);
-  const [planetStats, setPlanetStats] = useState<PlanetStat[]>([]);
-
-  const planetsData: Planet[] = [
-    {
-      id: 0,
-      name: 'Mercury',
-      color: '#8C7853',
-      baseMass: 0.055,
-      baseDistance: 90,
-      baseSize: 5,
-      baseSpeed: 0.047,
-      angle: 0,
-    },
-    {
-      id: 1,
-      name: 'Venus',
-      color: '#FFC649',
-      baseMass: 0.815,
-      baseDistance: 140,
-      baseSize: 11,
-      baseSpeed: 0.035,
-      angle: 2.1,
-    },
-    {
-      id: 2,
-      name: 'Earth',
-      color: '#4A90E2',
-      baseMass: 1,
-      baseDistance: 190,
-      baseSize: 12,
-      baseSpeed: 0.029,
-      angle: 4.2,
-    },
-  ];
-
-  const planetsRef = useRef<Planet[]>(planetsData.map(p => ({ ...p })));
-
-  /* ---------- EFFECT ---------- */
-
+function useLatestRef<T>(value: T) {
+  const ref = useRef(value);
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    ref.current = value;
+  }, [value]);
+  return ref;
+}
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    canvas.width = 900;
-    canvas.height = 700;
-
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-
-    const drawStars = () => {
-      ctx.fillStyle = '#FFFFFF';
-      for (let i = 0; i < 150; i++) {
-        const x = (i * 67 + 123) % canvas.width;
-        const y = (i * 89 + 456) % canvas.height;
-        const size = Math.random() * 1.5;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    };
-
-    const drawSun = () => {
-      const glow = ctx.createRadialGradient(centerX, centerY, 20, centerX, centerY, 40);
-      glow.addColorStop(0, 'rgba(255,200,0,0.3)');
-      glow.addColorStop(1, 'rgba(255,100,0,0)');
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
-      ctx.fill();
-
-      const sun = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 25);
-      sun.addColorStop(0, '#FFF5E1');
-      sun.addColorStop(0.4, '#FFD700');
-      sun.addColorStop(0.7, '#FFA500');
-      sun.addColorStop(1, '#FF6347');
-      ctx.fillStyle = sun;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 25, 0, Math.PI * 2);
-      ctx.fill();
-    };
-
-    const drawOrbit = (distance: number) => {
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, distance, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(100,100,100,0.3)';
-      ctx.stroke();
-    };
-
-    const drawPlanet = (planet: Planet, mass: number, distance: number) => {
-      const size = planet.baseSize * Math.pow(mass, 0.33);
-      const x = centerX + Math.cos(planet.angle) * distance;
-      const y = centerY + Math.sin(planet.angle) * distance;
-
-      ctx.fillStyle = planet.color;
-      ctx.beginPath();
-      ctx.arc(x, y, size, 0, Math.PI * 2);
-      ctx.fill();
-    };
-
-    const animate = () => {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      drawStars();
-      drawSun();
-
-      const stats: PlanetStat[] = [];
-
-      planetsRef.current.forEach(planet => {
-        if (!activePlanets.includes(planet.id)) return;
-
-        const multiplier = planetMasses[planet.id] ?? 1;
-        const mass = planet.baseMass * multiplier;
-        const distance = planet.baseDistance * Math.pow(1 / mass, 0.2);
-        const speed = Math.sqrt(planet.baseDistance / distance) * Math.sqrt(mass);
-
-        drawOrbit(distance);
-        drawPlanet(planet, mass, distance);
-
-        planet.angle += planet.baseSpeed * speed;
-
-        stats.push({
-          id: planet.id,
-          name: planet.name,
-          mass,
-          distance,
-          speed,
-          size: planet.baseSize * Math.pow(mass, 0.33),
-          massMultiplier: multiplier,
-        });
-      });
-
-      setPlanetStats(stats);
-      requestRef.current = requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      if (requestRef.current !== null) {
-        cancelAnimationFrame(requestRef.current);
-      }
-    };
-  }, [planetMasses, activePlanets]);
-
-  /* ---------- CONTROLS ---------- */
-
-  const handleReset = () => {
-    setPlanetMasses({ 0: 1, 1: 1, 2: 1 });
-    setActivePlanets([0, 1, 2]);
-    planetsRef.current = planetsData.map(p => ({ ...p }));
-  };
-
-  const handleMassChange = (id: number, value: number) => {
-    setPlanetMasses(prev => ({ ...prev, [id]: value }));
-    setActivePlanets([0, 1, 2]);
-  };
-
-  /* ---------- UI ---------- */
+function SliderRow(props: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  unit: string;
+  accentClassName: string;
+  onChange: (next: number) => void;
+}) {
+  const { label, value, min, max, step, unit, accentClassName, onChange } =
+    props;
 
   return (
-    <div className="min-h-screen bg-black p-6 text-white">
-      <h1 className="text-4xl font-bold text-center mb-6">🌌 Gravity Simulator</h1>
+    <div className="flex items-center gap-4 rounded-2xl border border-neutral-800 bg-neutral-900/70 px-4 py-3 shadow-sm">
+      <div className="min-w-[180px]">
+        <div className="text-sm font-semibold text-white">{label}</div>
+        <div className="mt-0.5 text-xs text-neutral-400">
+          <span className="tabular-nums text-neutral-200">
+            {formatNumber(value, step < 1 ? 2 : 1)}
+          </span>{" "}
+          {unit}
+        </div>
+      </div>
 
-      <canvas
-        ref={canvasRef}
-        className="mx-auto border-4 border-gray-700 rounded-xl shadow-2xl"
+      <input
+        className={`h-2 w-full cursor-pointer appearance-none rounded-full bg-neutral-800 outline-none ${accentClassName}`}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
       />
 
-      <div className="max-w-3xl mx-auto mt-6 space-y-4">
-        {planetsData.map(p => (
-          <div key={p.id} className="bg-gray-800 p-4 rounded-lg">
-            <p className="font-semibold">{p.name}</p>
-            <input
-              type="range"
-              min="0.1"
-              max="10"
-              step="0.1"
-              value={planetMasses[p.id]}
-              onChange={e => handleMassChange(p.id, parseFloat(e.target.value))}
-              className="w-full"
-            />
-          </div>
-        ))}
-
-        <button
-          onClick={handleReset}
-          className="w-full py-2 bg-red-600 rounded-lg font-bold"
-        >
-          Reset Simulation
-        </button>
+      <div className="min-w-[120px] text-right text-xs text-neutral-400">
+        <span className="tabular-nums text-neutral-200">
+          {formatNumber(value, step < 1 ? 2 : 1)}
+        </span>{" "}
+        {unit}
       </div>
     </div>
+  );
+}
+
+function CanvasSimulator(props: {
+  params: GravityParams;
+  sim: SimState;
+  paused: boolean;
+  onTogglePaused: () => void;
+  onRestart: () => void;
+}) {
+  const { params, sim, paused, onTogglePaused, onRestart } = props;
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const scaleModel = useMemo(() => {
+    // Provide stable, readable scaling that adapts to chosen h0, but keeps grid nice.
+    const peakEstimate = Math.max(
+      2,
+      params.h0 + (params.v0 > 0 ? (params.v0 * params.v0) / (2 * params.g) : 0)
+    );
+    const visibleTop = Math.max(10, Math.ceil((peakEstimate * 1.15) / 5) * 5);
+    return { visibleTop };
+  }, [params.g, params.h0, params.v0]);
+
+  // Resize canvas to match CSS size (incl. device pixel ratio) for crisp lines.
+  useEffect(() => {
+    const el = containerRef.current;
+    const canvas = canvasRef.current;
+    if (!el || !canvas) return;
+
+    const resize = () => {
+      const rect = el.getBoundingClientRect();
+      const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
+      const nextW = Math.max(1, Math.floor(rect.width * dpr));
+      const nextH = Math.max(1, Math.floor(rect.height * dpr));
+      if (canvas.width !== nextW || canvas.height !== nextH) {
+        canvas.width = nextW;
+        canvas.height = nextH;
+      }
+    };
+
+    resize();
+    const ro = new ResizeObserver(() => resize());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Draw whenever sim/params change (animation loop is managed by parent state).
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const el = containerRef.current;
+    if (!canvas || !el) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = el.getBoundingClientRect();
+    const dpr = canvas.width / Math.max(1, rect.width);
+    const w = canvas.width;
+    const h = canvas.height;
+
+    // Palette
+    const bg = "#0B1220";
+    const panel = "#0F172A"; // slate-900-ish
+    const grid = "rgba(148,163,184,0.12)"; // slate-400
+    const axis = "rgba(226,232,240,0.55)"; // slate-200
+    const text = "rgba(226,232,240,0.92)";
+    const subtext = "rgba(148,163,184,0.9)";
+    const ground = "rgba(226,232,240,0.25)";
+    const velocityBlue = "#38BDF8"; // sky-400
+    const accelRed = "#FB7185"; // rose-400
+    const object = "#E2E8F0";
+    const objectShadow = "rgba(0,0,0,0.45)";
+    const accent = "#A78BFA"; // violet-400
+
+    // Layout inside canvas (in device pixels)
+    const pad = 18 * dpr;
+    const leftPad = 52 * dpr; // room for y-axis labels
+    const bottomPad = 38 * dpr; // room for ground label
+    const topPad = 14 * dpr;
+
+    const plotX0 = leftPad;
+    const plotY0 = topPad;
+    const plotW = w - leftPad - pad;
+    const plotH = h - topPad - bottomPad;
+    const groundY = plotY0 + plotH;
+
+    ctx.clearRect(0, 0, w, h);
+
+    // Background (subtle gradient)
+    const grad = ctx.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, bg);
+    grad.addColorStop(1, panel);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Gridlines & y-axis ticks
+    const visibleTop = scaleModel.visibleTop;
+    const metersPerMajor = visibleTop >= 50 ? 10 : 5;
+    const toYpx = (meters: number) =>
+      groundY - (meters / visibleTop) * plotH;
+
+    ctx.lineWidth = 1 * dpr;
+    ctx.strokeStyle = grid;
+    for (let m = 0; m <= visibleTop; m += metersPerMajor) {
+      const y = toYpx(m);
+      ctx.beginPath();
+      ctx.moveTo(plotX0, y);
+      ctx.lineTo(plotX0 + plotW, y);
+      ctx.stroke();
+    }
+
+    // Axis
+    ctx.strokeStyle = axis;
+    ctx.lineWidth = 1.25 * dpr;
+    // y-axis
+    ctx.beginPath();
+    ctx.moveTo(plotX0, plotY0);
+    ctx.lineTo(plotX0, groundY);
+    ctx.stroke();
+    // ground line
+    ctx.strokeStyle = ground;
+    ctx.beginPath();
+    ctx.moveTo(plotX0, groundY);
+    ctx.lineTo(plotX0 + plotW, groundY);
+    ctx.stroke();
+
+    // Labels
+    ctx.fillStyle = subtext;
+    ctx.font = `${12 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = "right";
+    for (let m = 0; m <= visibleTop; m += metersPerMajor) {
+      const y = toYpx(m);
+      ctx.fillText(`${m}`, plotX0 - 8 * dpr, y);
+      // tick mark
+      ctx.strokeStyle = axis;
+      ctx.lineWidth = 1 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(plotX0 - 4 * dpr, y);
+      ctx.lineTo(plotX0, y);
+      ctx.stroke();
+    }
+
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = subtext;
+    ctx.fillText("Height (m)", plotX0, plotY0 - 6 * dpr);
+    ctx.fillText("Ground (y = 0 m)", plotX0, groundY + 24 * dpr);
+
+    // Object position (meters -> px)
+    const yMeters = clamp(sim.y, 0, visibleTop);
+    const yPx = toYpx(yMeters);
+    const xPx = plotX0 + plotW * 0.6;
+    const r = 10 * dpr;
+
+    // Velocity and acceleration arrows
+    // Scale arrow lengths to remain readable at different parameter values.
+    const vScale = (plotH / visibleTop) * 0.9; // px per (m/s) approximation
+    const aScale = (plotH / visibleTop) * 6.0; // px per (m/s^2) (clamped)
+    const vLen = clamp(sim.v * vScale * 0.12, -plotH * 0.28, plotH * 0.28);
+    const aLen = clamp((-params.g) * aScale * 0.02, -plotH * 0.22, plotH * 0.22);
+
+    const drawArrow = (
+      x0: number,
+      y0: number,
+      x1: number,
+      y1: number,
+      color: string
+    ) => {
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 2 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(x0, y0);
+      ctx.lineTo(x1, y1);
+      ctx.stroke();
+
+      const dx = x1 - x0;
+      const dy = y1 - y0;
+      const len = Math.max(1e-6, Math.hypot(dx, dy));
+      const ux = dx / len;
+      const uy = dy / len;
+      const head = 8 * dpr;
+      const wing = 5 * dpr;
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x1 - ux * head + -uy * wing, y1 - uy * head + ux * wing);
+      ctx.lineTo(x1 - ux * head + uy * wing, y1 - uy * head + -ux * wing);
+      ctx.closePath();
+      ctx.fill();
+    };
+
+    // Acceleration: constant downward arrow (red)
+    drawArrow(xPx - 48 * dpr, yPx, xPx - 48 * dpr, yPx - aLen, accelRed);
+    // Velocity: dynamic (blue)
+    drawArrow(xPx + 48 * dpr, yPx, xPx + 48 * dpr, yPx - vLen, velocityBlue);
+
+    // Object shadow on ground for depth
+    const shadowStrength = clamp(1 - yMeters / visibleTop, 0.15, 0.95);
+    ctx.fillStyle = objectShadow;
+    ctx.globalAlpha = 0.65 * shadowStrength;
+    ctx.beginPath();
+    ctx.ellipse(
+      xPx,
+      groundY + 6 * dpr,
+      r * 1.35,
+      r * 0.5,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Object
+    ctx.fillStyle = object;
+    ctx.beginPath();
+    ctx.arc(xPx, yPx, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = 2 * dpr;
+    ctx.stroke();
+
+    // Heads-up metrics
+    ctx.fillStyle = text;
+    ctx.font = `${13 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    const hudX = plotX0 + 12 * dpr;
+    const hudY = plotY0 + 10 * dpr;
+    const line = 18 * dpr;
+    ctx.fillText(`t = ${formatNumber(sim.t, 2)} s`, hudX, hudY);
+    ctx.fillText(`y = ${formatNumber(sim.y, 2)} m`, hudX, hudY + line);
+    ctx.fillText(`v = ${formatNumber(sim.v, 2)} m/s`, hudX, hudY + 2 * line);
+    ctx.fillStyle = accelRed;
+    ctx.fillText(`a = −${formatNumber(params.g, 2)} m/s²`, hudX, hudY + 3 * line);
+
+    // Legend
+    const legendY = plotY0 + plotH - 18 * dpr;
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = subtext;
+    ctx.fillText("Legend:", hudX, legendY);
+    ctx.fillStyle = velocityBlue;
+    ctx.fillText("velocity", hudX + 60 * dpr, legendY);
+    ctx.fillStyle = accelRed;
+    ctx.fillText("acceleration", hudX + 130 * dpr, legendY);
+  }, [params, scaleModel.visibleTop, sim]);
+
+  return (
+    <div className="rounded-3xl border border-neutral-800 bg-neutral-950/40 p-4 shadow-xl">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-white">
+            Free-fall with bounces
+          </div>
+          <div className="text-xs text-neutral-400">
+            Blue = velocity, Red = acceleration (gravity)
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onRestart}
+            className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold text-neutral-200 hover:bg-neutral-800"
+          >
+            Restart
+          </button>
+          <button
+            type="button"
+            onClick={onTogglePaused}
+            className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-200"
+          >
+            {paused ? "Play" : "Pause"}
+          </button>
+        </div>
+      </div>
+
+      <div
+        ref={containerRef}
+        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950"
+      >
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
+      </div>
+    </div>
+  );
+}
+
+export default function GravityPage() {
+  const [params, setParams] = useState<GravityParams>(DEFAULT_PARAMS);
+  const paramsRef = useLatestRef(params);
+
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useLatestRef(paused);
+
+  const [sim, setSim] = useState<SimState>(() => ({
+    y: DEFAULT_PARAMS.h0,
+    v: DEFAULT_PARAMS.v0,
+    t: 0,
+  }));
+
+  // Keep sim in refs for tight rAF loop without re-subscribing.
+  const simRef = useLatestRef(sim);
+  const rafRef = useRef<number | null>(null);
+  const lastTsRef = useRef<number | null>(null);
+
+  const restart = () => {
+    const p = paramsRef.current;
+    setSim({ y: p.h0, v: p.v0, t: 0 });
+    lastTsRef.current = null;
+  };
+
+  const resetDefaults = () => {
+    setParams(DEFAULT_PARAMS);
+    setSim({ y: DEFAULT_PARAMS.h0, v: DEFAULT_PARAMS.v0, t: 0 });
+    setPaused(false);
+    lastTsRef.current = null;
+  };
+
+  // 60fps animation loop (requestAnimationFrame).
+  useEffect(() => {
+    const step = (ts: number) => {
+      rafRef.current = window.requestAnimationFrame(step);
+      if (pausedRef.current) return;
+
+      const lastTs = lastTsRef.current;
+      lastTsRef.current = ts;
+      if (lastTs == null) return;
+
+      // Clamp dt for stability (avoid huge jumps on tab-switch).
+      const dt = clamp((ts - lastTs) / 1000, 0, 1 / 30); // max ~33ms
+      const p = paramsRef.current;
+      const s = simRef.current;
+
+      // Semi-implicit Euler integration:
+      // v(t+dt) = v(t) - g*dt
+      // y(t+dt) = y(t) + v(t+dt)*dt
+      let v = s.v - p.g * dt;
+      let y = s.y + v * dt;
+      let t = s.t + dt;
+
+      // Ground collision + coefficient of restitution bounce.
+      if (y <= 0) {
+        y = 0;
+        // Bounce only if we're moving down noticeably.
+        if (v < -0.05) {
+          v = -p.e * v;
+        } else {
+          // Settle to rest to avoid micro-jitter at ground.
+          v = 0;
+        }
+      }
+
+      // Auto-restart if settled (keeps it demonstrative).
+      if (y === 0 && Math.abs(v) < 0.01 && t > 0.35) {
+        y = p.h0;
+        v = p.v0;
+        t = 0;
+      }
+
+      setSim({ y, v, t });
+    };
+
+    rafRef.current = window.requestAnimationFrame(step);
+    return () => {
+      if (rafRef.current != null) window.cancelAnimationFrame(rafRef.current);
+    };
+  }, [paramsRef, pausedRef, simRef]);
+
+  // Immediate, intuitive cause-effect: changing initial conditions restarts.
+  const setParamAndMaybeRestart = (
+    patch: Partial<GravityParams>,
+    restartOnChange: boolean
+  ) => {
+    setParams((prev) => ({ ...prev, ...patch }));
+    if (restartOnChange) {
+      // Use patched values deterministically.
+      const next = { ...paramsRef.current, ...patch };
+      setSim({ y: next.h0, v: next.v0, t: 0 });
+      lastTsRef.current = null;
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-neutral-950">
+      {/* Background */}
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
+
+      <section className="mx-auto max-w-7xl px-6 pt-10 pb-10">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-white">
+            Gravity simulator
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm text-neutral-400">
+            Adjust the parameters and see how gravity changes motion in real time.
+          </p>
+        </div>
+
+        {/* Fixed 3-panel layout (60% / 40%), with bottom controls below left panel */}
+        <div className="flex flex-col gap-6 lg:flex-row">
+          {/* Left column: visual + bottom controls */}
+          <div className="w-full lg:w-[60%]">
+            <CanvasSimulator
+              params={params}
+              sim={sim}
+              paused={paused}
+              onTogglePaused={() => setPaused((p) => !p)}
+              onRestart={restart}
+            />
+
+            {/* Bottom panel: sliders */}
+            <div className="mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/40 p-4 shadow-xl">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-white">
+                    Parameters
+                  </div>
+                  <div className="text-xs text-neutral-400">
+                    Units are shown; changes update immediately.
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={resetDefaults}
+                  className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold text-neutral-200 hover:bg-neutral-800"
+                >
+                  Reset defaults
+                </button>
+              </div>
+
+              <div className="grid gap-3">
+                <SliderRow
+                  label="Gravitational acceleration, g"
+                  value={params.g}
+                  min={1}
+                  max={25}
+                  step={0.01}
+                  unit="m/s²"
+                  accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow"
+                  onChange={(g) => setParamAndMaybeRestart({ g }, false)}
+                />
+                <SliderRow
+                  label="Initial height, h₀"
+                  value={params.h0}
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  unit="m"
+                  accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-violet-400 [&::-webkit-slider-thumb]:shadow"
+                  onChange={(h0) => setParamAndMaybeRestart({ h0 }, true)}
+                />
+                <SliderRow
+                  label="Initial velocity, v₀ (upwards +)"
+                  value={params.v0}
+                  min={-30}
+                  max={30}
+                  step={0.1}
+                  unit="m/s"
+                  accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-400 [&::-webkit-slider-thumb]:shadow"
+                  onChange={(v0) => setParamAndMaybeRestart({ v0 }, true)}
+                />
+                <SliderRow
+                  label="Bounce efficiency, e"
+                  value={params.e}
+                  min={0}
+                  max={0.95}
+                  step={0.01}
+                  unit="(unitless)"
+                  accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-400 [&::-webkit-slider-thumb]:shadow"
+                  onChange={(e) => setParamAndMaybeRestart({ e }, false)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Right panel: information (spans full height) */}
+          <aside className="w-full lg:w-[40%]">
+            <div className="h-full rounded-3xl border border-neutral-800 bg-neutral-950/40 p-6 shadow-xl">
+              <div className="text-sm font-semibold text-white">
+                Concept: motion under gravity
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-neutral-300">
+                In vertical motion near Earth (ignoring air resistance), gravity
+                provides a nearly constant downward acceleration. Changing \(g\)
+                makes the object speed up more quickly; changing \(h_0\) and \(v_0\)
+                changes the starting conditions and therefore the entire trajectory.
+                The bounce parameter \(e\) shows energy loss at impacts, making each
+                rebound smaller.
+              </p>
+
+              <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900/60 p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-neutral-300">
+                  Key formulas
+                </div>
+                <div className="mt-3 space-y-2 text-sm text-neutral-200">
+                  <div className="font-mono">
+                    a = −g
+                    <span className="ml-2 text-neutral-400">(m/s²)</span>
+                  </div>
+                  <div className="font-mono">
+                    v(t) = v₀ − g t
+                    <span className="ml-2 text-neutral-400">(m/s)</span>
+                  </div>
+                  <div className="font-mono">
+                    y(t) = h₀ + v₀ t − ½ g t²
+                    <span className="ml-2 text-neutral-400">(m)</span>
+                  </div>
+                  <div className="font-mono">
+                    v_after = −e · v_before
+                    <span className="ml-2 text-neutral-400">(bounce)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="text-xs font-semibold uppercase tracking-wide text-neutral-300">
+                  Variables (with units)
+                </div>
+                <dl className="mt-3 grid gap-2 text-sm">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className="text-neutral-200">\(g\)</dt>
+                    <dd className="text-neutral-400">gravitational acceleration (m/s²)</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className="text-neutral-200">\(h_0\)</dt>
+                    <dd className="text-neutral-400">initial height (m)</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className="text-neutral-200">\(v_0\)</dt>
+                    <dd className="text-neutral-400">initial vertical velocity (m/s)</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className="text-neutral-200">\(e\)</dt>
+                    <dd className="text-neutral-400">coefficient of restitution (unitless)</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4 text-xs text-neutral-400">
+                Tip: set \(v_0 &gt; 0\) to throw upward; increase \(g\) to make the
+                fall noticeably faster.
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
   );
 }

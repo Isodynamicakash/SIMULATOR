@@ -1,63 +1,56 @@
 import Link from "next/link";
 
-const classes = [
+const subjects = [
   {
-    title: "Class 9",
-    description: "Foundation concepts with simple, visual explanations.",
-    href: "/subjects/class-9",
+    title: "Physics",
+    description: "Mechanics, waves, heat, and more with interactive simulations.",
+    href: "/subjects/class-11/physics",
   },
   {
-    title: "Class 10",
-    description: "Key board exam topics with intuitive illustrations.",
-    href: "/subjects/class-10",
+    title: "Mathematics",
+    description: "Algebra, calculus, and coordinate geometry visualized clearly.",
+    href: "/subjects/class-11/maths",
   },
   {
-    title: "Class 11",
-    description: "Core senior-secondary physics, chemistry, maths, and biology.",
-    href: "/subjects/class-11",
+    title: "Chemistry",
+    description: "Structure, bonding, and reactions explained visually.",
+    href: "/subjects/class-11/chemistry",
   },
   {
-    title: "Class 12",
-    description: "Advanced topics preparing you for boards and entrance exams.",
-    href: "/subjects/class-12",
+    title: "Biology",
+    description: "Cells, physiology, and genetics through diagrams and animations.",
+    href: "/subjects/class-11/biology",
   },
 ];
 
-export default function SubjectsPage() {
+export default function Class11SubjectsPage() {
   return (
     <main className="relative overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
 
       <section className="mx-auto max-w-7xl px-6 pt-28 pb-24">
-        {/* Header */}
         <div className="max-w-2xl">
           <h1 className="text-5xl font-bold tracking-tight text-white">
-            Explore Concepts
+            Class 11
           </h1>
-
           <p className="mt-4 text-lg text-neutral-400">
-            Start by choosing your class, then pick a subject and chapter to
-            dive into interactive topics.
+            Choose a subject to explore its chapters and interactive topics.
           </p>
         </div>
 
-        {/* Class cards */}
         <div className="mt-16 grid gap-8 md:grid-cols-2">
-          {classes.map((item) => (
+          {subjects.map((subject) => (
             <Link
-              key={item.title}
-              href={item.href}
+              key={subject.title}
+              href={subject.href}
               className="group rounded-3xl border border-neutral-800 bg-neutral-900 p-8 transition hover:-translate-y-1 hover:border-neutral-600 hover:bg-neutral-800"
             >
               <h2 className="text-2xl font-semibold text-white">
-                {item.title}
+                {subject.title}
               </h2>
-
               <p className="mt-4 text-neutral-400 leading-relaxed">
-                {item.description}
+                {subject.description}
               </p>
-
               <div className="mt-6 text-sm font-medium text-neutral-300 group-hover:text-white">
                 Open →
               </div>
@@ -68,3 +61,4 @@ export default function SubjectsPage() {
     </main>
   );
 }
+
