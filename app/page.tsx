@@ -61,23 +61,49 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Interactive demos – at bottom of landing page */}
       <section className="border-t border-neutral-800">
-        <div className="mx-auto max-w-7xl px-6 py-20 text-center">
-          <h2 className="text-4xl font-bold text-white">
-            Start with one concept.
-          </h2>
+        <div className="mx-auto max-w-7xl px-6 py-20">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-bold text-white">
+              Start with one concept.
+            </h2>
+            <p className="mt-4 text-lg text-neutral-400">
+              Understanding begins with seeing. Try these interactive demos.
+            </p>
+          </div>
 
-          <p className="mt-4 text-lg text-neutral-400">
-            Understanding begins with seeing.
-          </p>
+          <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
+            <Link
+              href="/subjects/physics/gravity"
+              className="group rounded-2xl border border-neutral-800 bg-neutral-900/80 p-6 transition hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-900 text-left"
+            >
+              <div className="text-lg font-semibold text-white">
+                Gravity – Free fall & bounces
+              </div>
+              <p className="mt-2 text-sm text-neutral-400">
+                Visualize motion under gravity with live control of g, height, and initial velocity.
+              </p>
+              <span className="mt-4 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-300 group-hover:border-emerald-400 group-hover:bg-emerald-500/15">
+                Live illustration · Open simulator
+              </span>
+            </Link>
 
-          <Link
-            href="/subjects/physics/gravity"
-            className="inline-block mt-8 rounded-2xl bg-white px-10 py-4 text-black font-semibold hover:bg-neutral-200 transition"
-          >
-            Try Gravity →
-          </Link>
+            <Link
+              href="/subjects/physics/rutherford-gold-foil"
+              className="group rounded-2xl border border-neutral-800 bg-neutral-900/80 p-6 transition hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-900 text-left"
+            >
+              <div className="text-lg font-semibold text-white">
+                Rutherford gold foil experiment
+              </div>
+              <p className="mt-2 text-sm text-neutral-400">
+                Watch α-particles scatter from a tiny nucleus with controllable Z and energy.
+              </p>
+              <span className="mt-4 inline-flex items-center rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1.5 text-xs font-medium text-sky-300 group-hover:border-sky-400 group-hover:bg-sky-500/15">
+                Live illustration · Open simulator
+              </span>
+            </Link>
+          </div>
         </div>
       </section>
     </main>

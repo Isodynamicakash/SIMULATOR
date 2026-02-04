@@ -1,5 +1,12 @@
 import Link from "next/link";
 
+function topicSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 type Topic = {
   title: string;
   description: string;
@@ -261,55 +268,6 @@ export default function Class11PhysicsChaptersPage() {
           </p>
         </div>
 
-        {/* Already-built interactive illustrations */}
-        <section className="mt-10 rounded-3xl border border-neutral-800 bg-neutral-900/80 p-6 md:p-7">
-          <div className="flex flex-col gap-3 md:flex-row md:items-baseline md:justify-between">
-            <div>
-              <h2 className="text-xl font-semibold text-white">
-                Interactive demos (ready to explore)
-              </h2>
-              <p className="mt-1 text-sm text-neutral-400">
-                These pages already have full illustrations and simulators. More
-                topics from the list below will be added over time.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <Link
-              href="/subjects/physics/gravity"
-              className="group rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4 transition hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-900"
-            >
-              <div className="text-sm font-semibold text-white">
-                Gravity – Free fall & bounces
-              </div>
-              <p className="mt-1 text-xs text-neutral-400">
-                Visualize motion under gravity with live control of g, height, and
-                initial velocity.
-              </p>
-              <div className="mt-3 inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-300 group-hover:border-emerald-400 group-hover:bg-emerald-500/15">
-                Live illustration · Open simulator
-              </div>
-            </Link>
-
-            <Link
-              href="/subjects/physics/rutherford-gold-foil"
-              className="group rounded-2xl border border-neutral-800 bg-neutral-950/80 p-4 transition hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-900"
-            >
-              <div className="text-sm font-semibold text-white">
-                Rutherford gold foil experiment
-              </div>
-              <p className="mt-1 text-xs text-neutral-400">
-                Watch α-particles scatter from a tiny nucleus with controllable Z
-                and energy.
-              </p>
-              <div className="mt-3 inline-flex items-center rounded-full border border-sky-500/40 bg-sky-500/10 px-2.5 py-1 text-[11px] font-medium text-sky-300 group-hover:border-sky-400 group-hover:bg-sky-500/15">
-                Live illustration · Open simulator
-              </div>
-            </Link>
-          </div>
-        </section>
-
         <div className="mt-12 space-y-8">
           {chapters.map((chapter) => (
             <section
@@ -332,9 +290,10 @@ export default function Class11PhysicsChaptersPage() {
 
               <div className="mt-5 grid gap-3 md:grid-cols-2">
                 {chapter.topics.map((topic) => (
-                  <div
+                  <Link
                     key={topic.title}
-                    className="rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4"
+                    href={`/subjects/class-11/physics/${chapter.id}/${topicSlug(topic.title)}`}
+                    className="group rounded-2xl border border-neutral-800 bg-neutral-950/70 p-4 transition hover:-translate-y-0.5 hover:border-neutral-600 hover:bg-neutral-900"
                   >
                     <div className="text-sm font-semibold text-white">
                       {topic.title}
@@ -342,10 +301,10 @@ export default function Class11PhysicsChaptersPage() {
                     <p className="mt-1 text-xs text-neutral-400">
                       {topic.description}
                     </p>
-                    <div className="mt-3 inline-flex items-center rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-1 text-[11px] font-medium text-neutral-300">
-                      Illustration: Coming soon
+                    <div className="mt-3 inline-flex items-center rounded-full border border-neutral-800 bg-neutral-900 px-2.5 py-1 text-[11px] font-medium text-neutral-300 group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 group-hover:text-emerald-200">
+                      Open topic · Illustration coming soon
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>

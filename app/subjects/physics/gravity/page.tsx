@@ -2,6 +2,47 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
+type PlanetId = "moon" | "earth" | "mars" | "jupiter";
+
+type PlanetOption = {
+  id: PlanetId;
+  name: string;
+  g: number;
+  subtitle: string;
+  colorClass: string;
+};
+
+const PLANETS: PlanetOption[] = [
+  {
+    id: "moon",
+    name: "Moon",
+    g: 1.62,
+    subtitle: "Low gravity playground",
+    colorClass: "from-cyan-400 to-sky-500",
+  },
+  {
+    id: "earth",
+    name: "Earth",
+    g: 9.81,
+    subtitle: "Our home planet",
+    colorClass: "from-emerald-400 to-lime-400",
+  },
+  {
+    id: "mars",
+    name: "Mars",
+    g: 3.71,
+    subtitle: "Red planet hops",
+    colorClass: "from-orange-400 to-amber-300",
+  },
+  {
+    id: "jupiter",
+    name: "Jupiter",
+    g: 24.79,
+    subtitle: "Extreme gravity giant",
+    colorClass: "from-fuchsia-400 to-rose-400",
+  },
+];
+
 type GravityParams = {
   /** Gravitational acceleration (m/s^2) */
   g: number;
@@ -11,6 +52,8 @@ type GravityParams = {
   v0: number;
   /** Coefficient of restitution for bounce (unitless, 0–1) */
   e: number;
+  /** Mass of the object (kg) */
+  m: number;
 };
 
 type SimState = {
@@ -27,6 +70,7 @@ const DEFAULT_PARAMS: GravityParams = {
   h0: 30,
   v0: 0,
   e: 0.55,
+  m: 10,
 };
 
 function clamp(n: number, min: number, max: number) {
@@ -96,10 +140,20 @@ function CanvasSimulator(props: {
   params: GravityParams;
   sim: SimState;
   paused: boolean;
+  planetName: string;
+  planetColorClass: string;
   onTogglePaused: () => void;
   onRestart: () => void;
 }) {
-  const { params, sim, paused, onTogglePaused, onRestart } = props;
+  const {
+    params,
+    sim,
+    paused,
+    planetName,
+    planetColorClass,
+    onTogglePaused,
+    onRestart,
+  } = props;
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -150,18 +204,18 @@ function CanvasSimulator(props: {
     const h = canvas.height;
 
     // Palette
-    const bg = "#0B1220";
-    const panel = "#0F172A"; // slate-900-ish
-    const grid = "rgba(148,163,184,0.12)"; // slate-400
-    const axis = "rgba(226,232,240,0.55)"; // slate-200
-    const text = "rgba(226,232,240,0.92)";
-    const subtext = "rgba(148,163,184,0.9)";
-    const ground = "rgba(226,232,240,0.25)";
-    const velocityBlue = "#38BDF8"; // sky-400
-    const accelRed = "#FB7185"; // rose-400
-    const object = "#E2E8F0";
+    const bg = "#0a1128"; // deep navy
+    const panel = "#020617"; // very dark blue/black
+    const grid = "rgba(56,189,248,0.16)"; // cyan grid
+    const axis = "#d4af37"; // gold axis
+    const text = "rgba(226,232,240,0.96)";
+    const subtext = "rgba(148,163,184,0.95)";
+    const ground = "rgba(212,175,55,0.35)"; // gold-ish
+    const velocityCyan = "#00ffff"; // cyan
+    const accelCrimson = "#dc143c"; // crimson
+    const object = "#e2e8f0";
     const objectShadow = "rgba(0,0,0,0.45)";
-    const accent = "#A78BFA"; // violet-400
+    const accent = "#d4af37"; // gold
 
     // Layout inside canvas (in device pixels)
     const pad = 18 * dpr;
@@ -281,10 +335,10 @@ function CanvasSimulator(props: {
       ctx.fill();
     };
 
-    // Acceleration: constant downward arrow (red)
-    drawArrow(xPx - 48 * dpr, yPx, xPx - 48 * dpr, yPx - aLen, accelRed);
-    // Velocity: dynamic (blue)
-    drawArrow(xPx + 48 * dpr, yPx, xPx + 48 * dpr, yPx - vLen, velocityBlue);
+    // Acceleration: constant downward arrow (crimson)
+    drawArrow(xPx - 52 * dpr, yPx, xPx - 52 * dpr, yPx - aLen, accelCrimson);
+    // Velocity: dynamic (cyan)
+    drawArrow(xPx + 52 * dpr, yPx, xPx + 52 * dpr, yPx - vLen, velocityCyan);
 
     // Object shadow on ground for depth
     const shadowStrength = clamp(1 - yMeters / visibleTop, 0.15, 0.95);
@@ -302,6 +356,24 @@ function CanvasSimulator(props: {
     );
     ctx.fill();
     ctx.globalAlpha = 1;
+
+    // Glowing halo around object (fun visual)
+    const glowRadius = r * 2.2;
+    const glowGrad = ctx.createRadialGradient(
+      xPx,
+      yPx,
+      r * 0.4,
+      xPx,
+      yPx,
+      glowRadius
+    );
+    glowGrad.addColorStop(0, "rgba(0,255,255,0.75)");
+    glowGrad.addColorStop(0.4, "rgba(0,255,255,0.35)");
+    glowGrad.addColorStop(1, "rgba(0,255,255,0)");
+    ctx.fillStyle = glowGrad;
+    ctx.beginPath();
+    ctx.arc(xPx, yPx, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
 
     // Object
     ctx.fillStyle = object;
@@ -323,29 +395,95 @@ function CanvasSimulator(props: {
     ctx.fillText(`t = ${formatNumber(sim.t, 2)} s`, hudX, hudY);
     ctx.fillText(`y = ${formatNumber(sim.y, 2)} m`, hudX, hudY + line);
     ctx.fillText(`v = ${formatNumber(sim.v, 2)} m/s`, hudX, hudY + 2 * line);
-    ctx.fillStyle = accelRed;
+    ctx.fillStyle = accelCrimson;
     ctx.fillText(`a = −${formatNumber(params.g, 2)} m/s²`, hudX, hudY + 3 * line);
+    const weight = params.m * params.g;
+    ctx.fillStyle = velocityCyan;
+    ctx.fillText(
+      `m = ${formatNumber(params.m, 1)} kg`,
+      hudX,
+      hudY + 4 * line
+    );
+    ctx.fillText(
+      `F = m·g = ${formatNumber(weight, 1)} N`,
+      hudX,
+      hudY + 5 * line
+    );
 
     // Legend
     const legendY = plotY0 + plotH - 18 * dpr;
     ctx.textBaseline = "middle";
     ctx.fillStyle = subtext;
     ctx.fillText("Legend:", hudX, legendY);
-    ctx.fillStyle = velocityBlue;
+    ctx.fillStyle = velocityCyan;
     ctx.fillText("velocity", hudX + 60 * dpr, legendY);
-    ctx.fillStyle = accelRed;
+    ctx.fillStyle = accelCrimson;
     ctx.fillText("acceleration", hudX + 130 * dpr, legendY);
-  }, [params, scaleModel.visibleTop, sim]);
+
+    // Planet label badge in top-right
+    const badgeW = 130 * dpr;
+    const badgeH = 28 * dpr;
+    const badgeX = plotX0 + plotW - badgeW - 8 * dpr;
+    const badgeY = plotY0 + 8 * dpr;
+    const planetGrad = ctx.createLinearGradient(
+      badgeX,
+      badgeY,
+      badgeX + badgeW,
+      badgeY + badgeH
+    );
+    // Rough approximation: cyan → gold mix to echo Tailwind classes
+    planetGrad.addColorStop(0, "rgba(56,189,248,0.9)");
+    planetGrad.addColorStop(1, "rgba(212,175,55,0.95)");
+    ctx.fillStyle = planetGrad;
+    ctx.beginPath();
+    const rBadge = 12 * dpr;
+    ctx.moveTo(badgeX + rBadge, badgeY);
+    ctx.lineTo(badgeX + badgeW - rBadge, badgeY);
+    ctx.quadraticCurveTo(
+      badgeX + badgeW,
+      badgeY,
+      badgeX + badgeW,
+      badgeY + rBadge
+    );
+    ctx.lineTo(badgeX + badgeW, badgeY + badgeH - rBadge);
+    ctx.quadraticCurveTo(
+      badgeX + badgeW,
+      badgeY + badgeH,
+      badgeX + badgeW - rBadge,
+      badgeY + badgeH
+    );
+    ctx.lineTo(badgeX + rBadge, badgeY + badgeH);
+    ctx.quadraticCurveTo(
+      badgeX,
+      badgeY + badgeH,
+      badgeX,
+      badgeY + badgeH - rBadge
+    );
+    ctx.lineTo(badgeX, badgeY + rBadge);
+    ctx.quadraticCurveTo(badgeX, badgeY, badgeX + rBadge, badgeY);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#020617";
+    ctx.font = `${12 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      planetName,
+      badgeX + badgeW / 2,
+      badgeY + badgeH / 2
+    );
+  }, [params, planetName, scaleModel.visibleTop, sim]);
 
   return (
-    <div className="rounded-3xl border border-neutral-800 bg-neutral-950/40 p-4 shadow-xl">
+    <div className="rounded-3xl border border-cyan-500/40 bg-neutral-950/60 p-4 shadow-[0_0_40px_rgba(0,255,255,0.12)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-white">
             Free-fall with bounces
           </div>
           <div className="text-xs text-neutral-400">
-            Blue = velocity, Red = acceleration (gravity)
+            Cyan = velocity, Crimson = acceleration, Gold = axes
           </div>
         </div>
 
@@ -353,14 +491,14 @@ function CanvasSimulator(props: {
           <button
             type="button"
             onClick={onRestart}
-            className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold text-neutral-200 hover:bg-neutral-800"
+            className="rounded-xl border border-cyan-500/40 bg-neutral-900 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-neutral-800 hover:border-cyan-400"
           >
             Restart
           </button>
           <button
             type="button"
             onClick={onTogglePaused}
-            className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-200"
+            className="rounded-xl bg-cyan-400/90 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-cyan-300"
           >
             {paused ? "Play" : "Pause"}
           </button>
@@ -369,7 +507,7 @@ function CanvasSimulator(props: {
 
       <div
         ref={containerRef}
-        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950"
+        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-cyan-500/40 bg-[#050816]"
       >
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       </div>
@@ -380,6 +518,12 @@ function CanvasSimulator(props: {
 export default function GravityPage() {
   const [params, setParams] = useState<GravityParams>(DEFAULT_PARAMS);
   const paramsRef = useLatestRef(params);
+
+  const [planetId, setPlanetId] = useState<PlanetId>("earth");
+  const activePlanet = useMemo(
+    () => PLANETS.find((p) => p.id === planetId) ?? PLANETS[1],
+    [planetId]
+  );
 
   const [paused, setPaused] = useState(false);
   const pausedRef = useLatestRef(paused);
@@ -402,6 +546,7 @@ export default function GravityPage() {
   };
 
   const resetDefaults = () => {
+    setPlanetId("earth");
     setParams(DEFAULT_PARAMS);
     setSim({ y: DEFAULT_PARAMS.h0, v: DEFAULT_PARAMS.v0, t: 0 });
     setPaused(false);
@@ -475,15 +620,17 @@ export default function GravityPage() {
   return (
     <main className="min-h-screen bg-neutral-950">
       {/* Background */}
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-[#020617] via-[#020617] to-[#0f172a]" />
 
       <section className="mx-auto max-w-7xl px-6 pt-10 pb-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-white">
-            Gravity simulator
+            Gravity playground
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-neutral-400">
-            Adjust the parameters and see how gravity changes motion in real time.
+            Drop the same object on the Moon, Earth, Mars or Jupiter. Change the
+            mass, height and throw speed and watch how the motion and weight react
+            to different worlds.
           </p>
         </div>
 
@@ -495,19 +642,22 @@ export default function GravityPage() {
               params={params}
               sim={sim}
               paused={paused}
+              planetName={activePlanet.name}
+              planetColorClass={activePlanet.colorClass}
               onTogglePaused={() => setPaused((p) => !p)}
               onRestart={restart}
             />
 
-            {/* Bottom panel: sliders */}
+            {/* Bottom panel: planets + sliders */}
             <div className="mt-6 rounded-3xl border border-neutral-800 bg-neutral-950/40 p-4 shadow-xl">
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-white">
-                    Parameters
+                    Choose a world & tweak parameters
                   </div>
                   <div className="text-xs text-neutral-400">
-                    Units are shown; changes update immediately.
+                    Planets set a realistic \(g\). You can still fine‑tune and adjust
+                    mass, height and launch speed.
                   </div>
                 </div>
                 <button
@@ -517,6 +667,45 @@ export default function GravityPage() {
                 >
                   Reset defaults
                 </button>
+              </div>
+
+              {/* Planet selector */}
+              <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                {PLANETS.map((planet) => {
+                  const active = planet.id === planetId;
+                  return (
+                    <button
+                      key={planet.id}
+                      type="button"
+                      onClick={() => {
+                        setPlanetId(planet.id);
+                        setParamAndMaybeRestart({ g: planet.g }, false);
+                      }}
+                      className={`relative overflow-hidden rounded-2xl border px-4 py-3 text-left text-sm transition ${
+                        active
+                          ? "border-cyan-400/80 bg-cyan-500/10 shadow-[0_0_25px_rgba(34,211,238,0.35)]"
+                          : "border-neutral-800 bg-neutral-900/60 hover:border-cyan-500/60 hover:bg-neutral-900"
+                      }`}
+                    >
+                      <div
+                        className={`pointer-events-none absolute inset-0 opacity-60 bg-gradient-to-r ${planet.colorClass}`}
+                      />
+                      <div className="relative">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-semibold text-white">
+                            {planet.name}
+                          </span>
+                          <span className="rounded-full bg-black/40 px-2 py-0.5 text-[11px] font-medium text-cyan-200">
+                            g = {planet.g.toFixed(2)} m/s²
+                          </span>
+                        </div>
+                        <div className="mt-1 text-[11px] text-slate-200">
+                          {planet.subtitle}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="grid gap-3">
@@ -529,6 +718,16 @@ export default function GravityPage() {
                   unit="m/s²"
                   accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow"
                   onChange={(g) => setParamAndMaybeRestart({ g }, false)}
+                />
+                <SliderRow
+                  label="Mass, m"
+                  value={params.m}
+                  min={1}
+                  max={50}
+                  step={1}
+                  unit="kg"
+                  accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-400 [&::-webkit-slider-thumb]:shadow"
+                  onChange={(m) => setParamAndMaybeRestart({ m }, false)}
                 />
                 <SliderRow
                   label="Initial height, h₀"

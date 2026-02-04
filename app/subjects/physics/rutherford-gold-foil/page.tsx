@@ -11,6 +11,8 @@ interface RutherfordParams {
   Z: number;
   /** Alpha kinetic energy (MeV). Higher energy → smaller deflection. */
   energyMeV: number;
+  /** Approximate emission rate of α-particles (particles per simulated second). */
+  emissionRate: number;
   /** Half-width of incoming beam around nucleus (fm). */
   beamHalfWidthFm: number;
   /** Effective nuclear radius / softening length (fm). */
@@ -33,6 +35,8 @@ interface Particle {
 
 interface Stats {
   launched: number;
+  passingCount: number;
+  scatteredCount: number;
   forwardCount: number;
   backscatterCount: number;
   meanExitAngleDeg: number;
@@ -42,6 +46,7 @@ interface Stats {
 const DEFAULT_PARAMS: RutherfordParams = {
   Z: 79,
   energyMeV: 5,
+  emissionRate: 35,
   beamHalfWidthFm: 35,
   nucleusRadiusFm: 7,
 };
@@ -156,11 +161,14 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
 
   const [stats, setStats] = useState<Stats>({
     launched: 0,
+    passingCount: 0,
+    scatteredCount: 0,
     forwardCount: 0,
     backscatterCount: 0,
     meanExitAngleDeg: 0,
     backscatterPercent: 0,
   });
+  const statsRef = useLatestRef(stats);
 
   // World extents in fm, used only for labeling & mapping to canvas
   const world = useMemo(
@@ -201,6 +209,8 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
     lastTsRef.current = null;
     setStats({
       launched: 0,
+      passingCount: 0,
+      scatteredCount: 0,
       forwardCount: 0,
       backscatterCount: 0,
       meanExitAngleDeg: 0,
@@ -281,6 +291,8 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
     const kept: Particle[] = [];
     let forward = 0;
     let back = 0;
+    let passing = 0;
+    let scattered = 0;
     const exitAngles: number[] = [];
 
     for (const pt of particles) {
@@ -292,6 +304,12 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
         forward++;
         const angle = Math.atan2(pt.vy, pt.vx); // radians
         exitAngles.push(angle);
+        const angleDeg = (angle * 180) / Math.PI;
+        if (Math.abs(angleDeg) < 10) {
+          passing++;
+        } else {
+          scattered++;
+        }
         continue;
       }
 
@@ -313,6 +331,8 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
       setStats((s) => {
         const nextForward = s.forwardCount + forward;
         const nextBack = s.backscatterCount + back;
+        const nextPassing = s.passingCount + passing;
+        const nextScattered = s.scatteredCount + scattered;
         const totalExited = nextForward + nextBack;
 
         let meanExitAngleDeg = s.meanExitAngleDeg;
@@ -333,6 +353,8 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
           ...s,
           forwardCount: nextForward,
           backscatterCount: nextBack,
+          passingCount: nextPassing,
+          scatteredCount: nextScattered,
           meanExitAngleDeg,
           backscatterPercent,
         };
@@ -360,11 +382,13 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
 
       const dt = clamp((timestamp - last) / 1000, 0, 1 / 30);
 
-      // Spawn particles at a steady rate
-      const spawnRate = 35; // particles / s
+      // Spawn particles at a steady rate, controlled by parameter
+      const spawnRate = clamp(paramsRef.current.emissionRate, 5, 90); // particles / s
       const expected = spawnRate * dt;
-      if (Math.random() < expected) spawnParticle();
-      if (Math.random() < expected * 0.35) spawnParticle();
+      // Simple stochastic spawning around expected value
+      const whole = Math.floor(expected);
+      for (let i = 0; i < whole; i++) spawnParticle();
+      if (Math.random() < expected - whole) spawnParticle();
 
       integrate(dt);
       draw();
@@ -666,20 +690,27 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
     ctx.font = `${11 * dpr}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
+    const liveStats = statsRef.current;
+
     ctx.fillText(
-      `Total α: ${stats.launched}`,
+      `Total α: ${liveStats.launched}`,
       panelX + 10 * dpr,
       panelY + 8 * dpr
     );
     ctx.fillText(
-      `Forward: ${stats.forwardCount}`,
+      `Passing: ${liveStats.passingCount}`,
       panelX + 10 * dpr,
       panelY + 8 * dpr + 14 * dpr
     );
     ctx.fillText(
-      `Backscatter: ${stats.backscatterCount}`,
+      `Scattered: ${liveStats.scatteredCount}`,
       panelX + 10 * dpr,
       panelY + 8 * dpr + 28 * dpr
+    );
+    ctx.fillText(
+      `Backscatter: ${liveStats.backscatterCount}`,
+      panelX + 10 * dpr,
+      panelY + 8 * dpr + 42 * dpr
     );
 
     // Legend
@@ -699,14 +730,14 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
   };
 
   return (
-    <div className="rounded-3xl border border-neutral-800 bg-neutral-950/40 p-4 shadow-xl">
+    <div className="rounded-3xl border border-cyan-500/40 bg-neutral-950/60 p-4 shadow-[0_0_40px_rgba(0,255,255,0.18)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="text-sm font-semibold text-white">
             Rutherford scattering simulator
           </div>
           <div className="text-xs text-neutral-400">
-            Blue paths show α-particles deflecting from the tiny, dense nucleus.
+            Cyan trails show α-particles; gold band is the foil, crimson dot is the nucleus.
           </div>
         </div>
 
@@ -714,14 +745,14 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
           <button
             type="button"
             onClick={handleRestartClick}
-            className="rounded-xl border border-neutral-800 bg-neutral-900 px-3 py-2 text-xs font-semibold text-neutral-200 hover:bg-neutral-800"
+            className="rounded-xl border border-cyan-500/40 bg-neutral-900 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-neutral-800 hover:border-cyan-400"
           >
             Restart
           </button>
           <button
             type="button"
             onClick={onTogglePaused}
-            className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-neutral-900 hover:bg-neutral-200"
+            className="rounded-xl bg-amber-300/90 px-3 py-2 text-xs font-semibold text-slate-950 hover:bg-amber-200"
           >
             {paused ? "Play" : "Pause"}
           </button>
@@ -730,7 +761,7 @@ const CanvasSimulator: React.FC<CanvasSimulatorProps> = ({
 
       <div
         ref={containerRef}
-        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-950"
+        className="relative aspect-video w-full overflow-hidden rounded-2xl border border-cyan-500/40 bg-[#050816]"
       >
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" />
       </div>
@@ -752,17 +783,18 @@ const RutherfordGoldFoilPage: React.FC = () => {
   };
 
   return (
-    <main className="min-h-screen bg-neutral-950">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-neutral-950 via-neutral-900 to-black" />
+    <main className="min-h-screen bg-[#020617]">
+      <div className="pointer-events-none fixed inset-0 -z-10 bg-gradient-to-br from-[#020617] via-[#020617] to-[#0b1120]" />
 
       <section className="mx-auto max-w-7xl px-6 pt-10 pb-10">
         <div className="mb-8">
           <h1 className="text-3xl font-bold tracking-tight text-white">
-            Rutherford gold foil experiment
+            Rutherford Gold Foil Explorer
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-neutral-400">
-            Adjust nuclear charge and α-particle energy to see how scattering
-            angles reveal a tiny, positively charged nucleus.
+            Dark observatory view of α-particles hitting a thin gold foil. Tune
+            nuclear charge and particle energy to see how scattering angles
+            reveal a tiny, positively charged nucleus.
           </p>
         </div>
 
@@ -787,7 +819,8 @@ const RutherfordGoldFoilPage: React.FC = () => {
                   </div>
                   <div className="text-xs text-neutral-400">
                     Larger \(Z\) or lower \(E\) → stronger Coulomb repulsion and
-                    more large-angle scattering.
+                    more large-angle scattering. Increase emission rate to send
+                    more α-particles per second.
                   </div>
                 </div>
                 <button
@@ -809,6 +842,18 @@ const RutherfordGoldFoilPage: React.FC = () => {
                   unit="(unitless)"
                   accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow"
                   onChange={(Z) => setParams((p) => ({ ...p, Z }))}
+                />
+                <SliderRow
+                  label="Emission rate"
+                  value={params.emissionRate}
+                  min={5}
+                  max={80}
+                  step={1}
+                  unit="α / s"
+                  accentClassName="[&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-amber-400 [&::-webkit-slider-thumb]:shadow"
+                  onChange={(emissionRate) =>
+                    setParams((p) => ({ ...p, emissionRate }))
+                  }
                 />
                 <SliderRow
                   label="Alpha kinetic energy, E"
@@ -870,17 +915,16 @@ const RutherfordGoldFoilPage: React.FC = () => {
                 </div>
                 <div className="mt-3 space-y-2 text-sm text-neutral-200 font-mono">
                   <div>
-                    θ = 2 arctan
-                    {"("} k · Z z e² / (2 E b) {")"}
+                    θ ≈ 2 arctan( k · Z₁ Z₂ e² / (2 E b) )
                   </div>
                   <div>
-                    dσ/dΩ ∝ (Z² / E²) · csc⁴(θ/2)
+                    dσ/dΩ ∝ (Z₁² Z₂² / E²) · csc⁴(θ / 2)
                   </div>
                 </div>
                 <p className="mt-2 text-xs text-neutral-400">
                   These relations show that scattering is stronger for larger
-                  nuclear charge \(Z\), smaller impact parameter \(b\), and
-                  lower alpha energy \(E\).
+                  nuclear charge Z, smaller impact parameter b, and
+                  lower alpha energy E.
                 </p>
               </div>
 
@@ -890,25 +934,25 @@ const RutherfordGoldFoilPage: React.FC = () => {
                 </div>
                 <dl className="mt-3 grid gap-2 text-sm">
                   <div className="flex items-baseline justify-between gap-4">
-                    <dt className="text-neutral-200">\(Z\)</dt>
+                    <dt className="text-neutral-200">Z</dt>
                     <dd className="text-neutral-400">
                       nuclear charge number (unitless)
                     </dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-4">
-                    <dt className="text-neutral-200">\(E\)</dt>
+                    <dt className="text-neutral-200">E</dt>
                     <dd className="text-neutral-400">
                       alpha kinetic energy (MeV)
                     </dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-4">
-                    <dt className="text-neutral-200">\(b\)</dt>
+                    <dt className="text-neutral-200">b</dt>
                     <dd className="text-neutral-400">
                       impact parameter (closest approach, fm)
                     </dd>
                   </div>
                   <div className="flex items-baseline justify-between gap-4">
-                    <dt className="text-neutral-200">\(θ\)</dt>
+                    <dt className="text-neutral-200">θ</dt>
                     <dd className="text-neutral-400">
                       scattering angle (degrees or radians)
                     </dd>
@@ -923,7 +967,7 @@ const RutherfordGoldFoilPage: React.FC = () => {
               </div>
 
               <div className="mt-6 rounded-2xl border border-neutral-800 bg-neutral-900/40 p-4 text-xs text-neutral-400">
-                Try: increase \(Z\) and decrease \(E\). You should see more
+                Try: increase Z and decrease E. You should see more
                 trajectories deflect through large angles and an increased
                 backscatter percentage in the overlay.
               </div>
