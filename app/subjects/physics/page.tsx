@@ -8,6 +8,12 @@ const topics = [
     href: "/subjects/physics/gravity",
   },
   {
+    title: "Rutherford Gold Foil Experiment",
+    description:
+      "Visualize alpha-particle scattering to see evidence for a tiny, dense atomic nucleus.",
+    href: "/subjects/physics/rutherford-gold-foil",
+  },
+  {
     title: "Motion",
     description:
       "Explore displacement, velocity, acceleration, and motion graphs intuitively.",
