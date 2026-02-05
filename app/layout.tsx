@@ -1,4 +1,5 @@
 import "./globals.css";
+import RouteWarmup from "@/components/RouteWarmup";
 
 export const metadata = {
   title: "Illustrated Concepts | NCERT Science",
@@ -12,7 +13,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className="min-h-screen bg-neutral-950 text-white">
+        <RouteWarmup />
+        {children}
+      </body>
     </html>
   );
 }

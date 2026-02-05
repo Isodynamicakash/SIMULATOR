@@ -1,4 +1,4 @@
-import SubjectPage, { Topic } from "../../../../components/SubjectPage";
+import SubjectPage, { Topic } from "@/app/components/SubjectPage";
 
 
 

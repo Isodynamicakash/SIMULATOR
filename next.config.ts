@@ -1,9 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No output: "export" — use Vercel server/Node so dynamic routes are built on-demand and avoid OOM.
   images: {
     unoptimized: true,
+  },
+  // Use current project dir as root for file tracing (fixes multiple-lockfile warning)
+  outputFileTracingRoot: process.cwd(),
+  experimental: {
+    serverComponentsHmrCache: true,
   },
 };
 

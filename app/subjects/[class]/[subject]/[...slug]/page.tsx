@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import TopicPageContent from "@/components/topics/TopicPageContent";
 import ComingSoonBlock from "@/components/topics/ComingSoonBlock";
 import { slugToTitle } from "@/lib/data/slugToTitle";
-import PhysicsSimulationLoader from "@/components/PhysicsSimulationLoader";
+import LazyPhysicsSimulationLoader from "@/components/LazyPhysicsSimulationLoader";
 
 export const dynamic = "force-dynamic";
 
@@ -69,7 +69,7 @@ export default async function SubjectTopicPage({ params }: PageProps) {
       slug[0] === "kinematics" &&
       slug[1] === "projectile-motion" ? (
         <div className="mt-2">
-          <PhysicsSimulationLoader topic="projectile-motion" />
+          <LazyPhysicsSimulationLoader topic="projectile-motion" />
         </div>
       ) : (
         <ComingSoonBlock topicTitle={title} />
