@@ -20,7 +20,6 @@ const SUBTOPIC_ICONS: Record<ElectricitySubtopicSlug, string> = {
   "electric-circuit": "🔌",
   "electrical-energy": "🔋",
   "electric-power": "🔥",
-  "electric-motor": "⚙️" ,
 };
 import ElectricityRealWorldApps from "./components/ElectricityRealWorldApps";
 import ElectricityConceptExplainer from "./components/ElectricityConceptExplainer";
@@ -43,8 +42,7 @@ export const metadata = {
     "electrical energy",
     "electric power",
     "interactive simulation",
-     "electric-motor",
-  ],
+   ],
   alternates: {
     canonical: `${SITE_URL}/high-school/physics/electricity`,
   },
@@ -68,8 +66,6 @@ export default function HighSchoolPhysicsElectricityPage() {
       breadcrumbs={breadcrumbs}
       title="Electricity"
       fullWidth
-      titleClassName="text-4xl sm:text-5xl font-extrabold tracking-wide text-white drop-shadow-sm border-b border-cyan-500/30 pb-2 inline-block"
-      contentClassName="mt-3"
     >
       {/* Hero: intro (left) + key concepts (right on desktop), vertically aligned */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0 mb-3 lg:mb-4 lg:items-center">
@@ -103,7 +99,7 @@ export default function HighSchoolPhysicsElectricityPage() {
       {/* Simulator + parameters: wide professional layout, no clipping */}
       <div
         id="simulator"
-        className="flex flex-col flex-1 min-h-0 max-w-[1600px] w-full mx-auto rounded-2xl border border-neutral-700 bg-neutral-950/80 overflow-visible mb-8 shadow-lg shadow-black/20 scroll-mt-24 transition-[box-shadow] duration-300 min-h-[620px] lg:min-h-[720px] xl:min-h-[780px] px-[clamp(16px,3vw,32px)]"
+        className="flex flex-col flex-1 max-w-[1600px] w-full mx-auto rounded-2xl border border-neutral-700 bg-neutral-950/80 overflow-visible mb-8 shadow-lg shadow-black/20 scroll-mt-24 transition-[box-shadow] duration-300 min-h-[620px] lg:min-h-[720px] xl:min-h-[780px] px-[clamp(16px,3vw,32px)]"
       >
         <CircuitSimulation />
       </div>

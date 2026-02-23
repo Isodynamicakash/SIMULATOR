@@ -82,6 +82,10 @@ function formatNumber(n: number, digits = 2) {
   return n.toFixed(digits);
 }
 
+type GravitySimulationProps = {
+  embedded?: boolean;
+};
+
 function useLatestRef<T>(value: T) {
   const ref = useRef(value);
   useEffect(() => {
@@ -515,7 +519,7 @@ function CanvasSimulator(props: {
   );
 }
 
-export default function GravitySimulation() {
+export default function GravitySimulation({}: GravitySimulationProps) {
   const [params, setParams] = useState<GravityParams>(DEFAULT_PARAMS);
   const paramsRef = useLatestRef(params);
 

@@ -8,18 +8,30 @@ const { maxWidth, grid, minHeight, panel, header } = SIMULATOR_LAYOUT_CONFIG;
 type SimulatorLayoutProps = {
   /** Optional title (left side of header) */
   title?: React.ReactNode;
+
   /** Optional subtitle or description below title */
   subtitle?: React.ReactNode;
+
   /** Right side of header: Launch, Pause, Reset, etc. */
   headerControls?: React.ReactNode;
+
   /** When set, the entire header is this node (overrides title/subtitle/headerControls) */
   renderHeader?: React.ReactNode;
+
   /** Main simulation canvas/content area */
   children: React.ReactNode;
+
   /** Right-hand parameter/control panel */
   controlPanel: React.ReactNode;
+
   /** Optional class for outer wrapper */
   className?: string;
+
+  /** custom title styling */
+  titleClassName?: string;
+
+  /** custom canvas wrapper styling */
+  contentClassName?: string;
 };
 
 /**
@@ -35,8 +47,12 @@ export function SimulatorLayout({
   children,
   controlPanel,
   className = "",
+  titleClassName,
+  contentClassName,
 }: SimulatorLayoutProps) {
-  const hasHeader = renderHeader != null || title != null || headerControls != null;
+  const hasHeader =
+    renderHeader != null || title != null || headerControls != null;
+
   return (
     <div
       className={`w-full mx-auto overflow-visible sim-layout-outer ${className}`}
@@ -59,19 +75,30 @@ export function SimulatorLayout({
           }}
         >
           {hasHeader && (
-            <header className="sim-layout-header shrink-0 px-4 pt-4" style={{ marginBottom: header.marginBottom }}>
+            <header
+              className="sim-layout-header shrink-0 px-4 pt-4"
+              style={{ marginBottom: header.marginBottom }}
+            >
               {renderHeader != null ? (
                 renderHeader
               ) : (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   {title != null && (
                     <div>
-                      <div className="text-base font-semibold text-white">{title}</div>
+                      <div
+                        className={`text-base font-semibold text-white ${titleClassName ?? ""}`}
+                      >
+                        {title}
+                      </div>
+
                       {subtitle != null && (
-                        <div className="text-xs text-neutral-400 mt-0.5">{subtitle}</div>
+                        <div className="text-xs text-neutral-400 mt-0.5">
+                          {subtitle}
+                        </div>
                       )}
                     </div>
                   )}
+
                   {headerControls != null && (
                     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">
                       {headerControls}
@@ -81,7 +108,10 @@ export function SimulatorLayout({
               )}
             </header>
           )}
-          <div className="sim-layout-canvas-inner relative flex-1 w-full overflow-visible min-h-0 rounded-b-[18px] px-4 pb-4 flex flex-col">
+
+          <div
+            className={`sim-layout-canvas-inner relative flex-1 w-full overflow-visible min-h-0 rounded-b-[18px] px-4 pb-4 flex flex-col ${contentClassName ?? ""}`}
+          >
             {children}
           </div>
         </div>
@@ -107,6 +137,7 @@ export function SimulatorLayout({
 /** Apply these to canvas or wrapper so the simulation scales without cropping */
 export const SIMULATOR_CANVAS_CLASS =
   "w-full h-full min-h-0 block object-contain";
+
 export const SIMULATOR_CANVAS_STYLE: React.CSSProperties = {
   width: "100%",
   height: "100%",

@@ -18,7 +18,6 @@ const MAGNETISM_SUBTOPIC_ICONS: Record<MagnetismSubtopicSlug, string> = {
   "flemings-left-hand-rule": "✋",
   "flemings-right-hand-rule": "🤚",
   "electromagnetic-induction": "⚡",
-  "electric-motor": "⚙️",
   "electric-generator": "🔄",
 };
 
@@ -34,7 +33,6 @@ export const metadata = {
     "magnetic field",
     "electromagnetism",
     "electromagnetic induction",
-    "electric motor",
     "electric generator",
     "Fleming's left-hand rule",
     "Fleming's right-hand rule",
@@ -57,15 +55,13 @@ export default function HighSchoolPhysicsMagnetismPage() {
   const breadcrumbs = [{ label: "Magnetism & Electromagnetism", href: "/high-school/physics/magnetism" }];
 
   return (
-    <SeniorSecondaryTopicLayout
-      level="high-school"
-      subject="physics"
-      breadcrumbs={breadcrumbs}
-      title="Magnetism & Electromagnetism"
-      fullWidth
-      titleClassName="text-4xl sm:text-5xl font-extrabold tracking-wide text-white drop-shadow-sm border-b border-cyan-500/30 pb-2 inline-block"
-      contentClassName="mt-3"
-    >
+  <SeniorSecondaryTopicLayout
+    level="high-school"
+    subject="physics"
+    breadcrumbs={breadcrumbs}
+    title="Magnetism & Electromagnetism"
+    fullWidth
+  >
       {/* Hero */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0 mb-3 lg:mb-4 lg:items-center">
         <div className="lg:col-span-7 lg:pr-6">
@@ -106,7 +102,7 @@ export default function HighSchoolPhysicsMagnetismPage() {
       {/* Flagship simulator */}
       <div
         id="simulator"
-        className="flex flex-col flex-1 min-h-0 max-w-[1600px] w-full mx-auto rounded-2xl border border-neutral-700 bg-neutral-950/80 overflow-visible mb-8 shadow-lg shadow-black/20 scroll-mt-24 transition-[box-shadow] duration-300 min-h-[620px] lg:min-h-[720px] xl:min-h-[780px] px-[clamp(16px,3vw,32px)]"
+        className="flex flex-col flex-1 max-w-[1600px] w-full mx-auto rounded-2xl border border-neutral-700 bg-neutral-950/80 overflow-visible mb-8 shadow-lg shadow-black/20 scroll-mt-24 transition-[box-shadow] duration-300 min-h-[620px] lg:min-h-[720px] xl:min-h-[780px] px-[clamp(16px,3vw,32px)]"
       >
         <MagneticFieldSimulation />
       </div>

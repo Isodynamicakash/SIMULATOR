@@ -3,14 +3,16 @@ import Link from "next/link";
 type BreadcrumbItem = { label: string; href: string };
 
 type Props = {
-  level: "senior-secondary" | "high-school";
-  subject: string;
-  breadcrumbs: BreadcrumbItem[];
-  title: string;
-  subtitle?: React.ReactNode;
-  fullWidth?: boolean;
-  children: React.ReactNode;
-};
+  level: string
+  subject: string
+  title: string
+  subtitle?: React.ReactNode
+  fullWidth?: boolean
+  breadcrumbs?: { label: string; href: string }[]
+  children: React.ReactNode
+  contentClassName?: string
+  titleClassName?: string
+}
 
 const subjectLabels: Record<string, string> = {
   physics: "Physics",
@@ -26,6 +28,9 @@ export default function SeniorSecondaryTopicLayout({
   subtitle,
   fullWidth,
   children,
+  contentClassName,
+  titleClassName,
+
 }: Props) {
   const base = `/${level}/${subject}`;
   const levelLabel = level === "senior-secondary" ? "Senior Secondary" : "High School";
@@ -45,7 +50,7 @@ export default function SeniorSecondaryTopicLayout({
           <Link href={base} className="text-neutral-400 transition hover:text-white">
             {levelLabel} {subjectLabel}
           </Link>
-          {breadcrumbs.map((item, i) => (
+          {breadcrumbs?.map((item, i) => (
             <span key={item.href}>
               <span className="text-neutral-600">/</span>
               {i === breadcrumbs.length - 1 ? (

@@ -236,7 +236,7 @@ function buildRays(
   cx: number,
   ix: number,
   iy: number,
-  type: "real" | "virtual",
+  type: "real" | "virtual"| "at-infinity",
   mirrorType: "concave" | "convex"
 ): RayPath[] {
   const rays: RayPath[] = [];

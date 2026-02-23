@@ -22,9 +22,6 @@ const RightHandRuleSimulation = lazy(() =>
 const ElectromagneticInductionSimulation = lazy(() =>
   import("./magnetism/ElectromagneticInductionSimulation").then((m) => ({ default: m.default })),
 );
-const ElectricMotorSimulation = lazy(() =>
-  import("./magnetism/ElectricMotorSimulation").then((m) => ({ default: m.default })),
-);
 const ElectricGeneratorSimulation = lazy(() =>
   import("./magnetism/ElectricGeneratorSimulation").then((m) => ({ default: m.default })),
 );
@@ -37,7 +34,6 @@ const SIM_MAP: Partial<Record<MagnetismSubtopicSlug, React.LazyExoticComponent<R
     "flemings-left-hand-rule": LeftHandRuleSimulation,
     "flemings-right-hand-rule": RightHandRuleSimulation,
     "electromagnetic-induction": ElectromagneticInductionSimulation,
-    "electric-motor": ElectricMotorSimulation,
     "electric-generator": ElectricGeneratorSimulation,
   };
 

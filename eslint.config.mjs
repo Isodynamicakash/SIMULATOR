@@ -1,32 +1,17 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import nextPlugin from "@next/eslint-plugin-next";
-import reactPlugin from "eslint-plugin-react";
-import reactHooksPlugin from "eslint-plugin-react-hooks";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { FlatCompat } from "@eslint/eslintrc";
 
-const eslintConfig = [
-  // 1. Next.js Core Web Vitals (Flat Config ready)
-  nextPlugin.configs['core-web-vitals'],
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
-  // 2. React (using plugin's flat config if available, or manual setup)
-  // eslint-plugin-react v7.35+ exports flat configs
-  reactPlugin.configs.flat.recommended,
-  reactPlugin.configs.flat['jsx-runtime'],
+const compat = new FlatCompat({
+  baseDirectory: __dirname,
+});
 
-  // 3. React Hooks
+export default [
+  ...compat.extends("next/core-web-vitals"),
   {
-    plugins: {
-      "react-hooks": reactHooksPlugin,
-    },
-    rules: {
-      ...reactHooksPlugin.configs.recommended.rules,
-    },
+    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"],
   },
-
-  // 4. Ignores
-  {
-    ignores: [".next/**", "out/**", "build/**", "next-env.d.ts"]
-  }
 ];
-
-export default eslintConfig;

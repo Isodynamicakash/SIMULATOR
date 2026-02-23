@@ -14,7 +14,6 @@ export type ElectricitySubtopicSlug =
   | "electric-circuit"
   | "electrical-energy"
   | "electric-power"
-  | "electric-motor"
 
 export interface ElectricitySubtopicContentBlock {
   heading?: string;
@@ -334,22 +333,6 @@ export const ELECTRICITY_SUBTOPICS: Record<ElectricitySubtopicSlug, ElectricityS
     reflectivePrompt: "A 100 W bulb and a 25 W bulb both run at the same voltage. Which has the higher resistance, and why?",
     simulatorCallout: "In the circuit simulator, power depends on V and I; try different resistances to see how power changes.",
   },
-  "electric-motor": {
-    slug: "electric-motor",
-    title: "Electric Motor",
-    shortDescription:
-      "Understand how electric current produces rotational motion using magnetic fields.",
-    keywords: ["electric motor", "lorentz force", "motor principle"],
-    content: [
-      {
-        heading: "Principle",
-        body: "An electric motor converts electrical energy into mechanical energy using magnetic force acting on a current-carrying conductor.",
-        keyTakeaway: "Current + magnetic field → force → rotation",
-      },
-    ],
-    reflectivePrompt: "Why does reversing current reverse motor direction?",
-    simulatorCallout: "Change current and observe rotation speed.",
-  },
 };
 
 
@@ -364,6 +347,5 @@ export const ELECTRICITY_SUBTOPIC_SLUGS: ElectricitySubtopicSlug[] = [
   "electric-circuit",
   "electrical-energy",
   "electric-power",
-  "electric-motor",
-  
+
 ];

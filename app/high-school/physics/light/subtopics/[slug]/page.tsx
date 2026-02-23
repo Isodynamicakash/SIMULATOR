@@ -56,7 +56,6 @@ export default async function LightOpticsSubtopicPage({ params }: Props) {
       breadcrumbs={breadcrumbs}
       title={subtopic.title}
       fullWidth
-      contentClassName="mt-4"
     >
       <div className="sim-topic-container">
         <p className="mb-4 text-base text-neutral-300 max-w-3xl leading-relaxed">

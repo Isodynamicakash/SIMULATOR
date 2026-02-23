@@ -9,7 +9,6 @@ export type MagnetismSubtopicSlug =
   | "flemings-left-hand-rule"
   | "flemings-right-hand-rule"
   | "electromagnetic-induction"
-  | "electric-motor"
   | "electric-generator";
 
 export interface MagnetismContentBlock {
@@ -195,34 +194,7 @@ export const MAGNETISM_SUBTOPICS: Record<MagnetismSubtopicSlug, MagnetismSubtopi
     simulatorCallout:
       "In the induction simulator, vary magnet speed and coil turns and watch the emf–time graph and galvanometer deflection.",
   },
-  "electric-motor": {
-    slug: "electric-motor",
-    title: "Electric Motor",
-    shortDescription:
-      "An electric motor converts electrical energy into mechanical energy using the force on a current-carrying coil in a magnetic field, plus a commutator to keep it rotating in one direction.",
-    keywords: [
-      "electric motor",
-      "DC motor",
-      "torque on coil",
-      "commutator",
-      "Fleming's left-hand rule",
-      "high school physics",
-    ],
-    content: [
-      {
-        heading: "Principle of motor action",
-        body: "A current-carrying conductor in a magnetic field experiences a force. In a rectangular coil placed between the poles of a magnet, forces on opposite sides of the coil form a couple, creating a torque that makes the coil rotate. Fleming’s left-hand rule gives the direction of force on each side.",
-        keyTakeaway: "Motor principle: current + magnetic field → force → rotation (torque).",
-      },
-      {
-        heading: "Role of commutator",
-        body: "In a simple DC motor, a split-ring commutator reverses the direction of current in the coil every half-rotation. This ensures that the torque on the coil always acts in roughly the same rotational direction, allowing continuous rotation.",
-        keyTakeaway: "Commutator reverses coil current each half-turn so the motor keeps spinning.",
-      },
-    ],
-    reflectivePrompt: "What would happen to a DC motor if the commutator were not present?",
-    simulatorCallout: "Adjust current, field strength, and turns in the motor simulator to see torque and rotation speed.",
-  },
+  
   "electric-generator": {
     slug: "electric-generator",
     title: "Electric Generator",
@@ -261,7 +233,6 @@ export const MAGNETISM_SUBTOPIC_SLUGS: MagnetismSubtopicSlug[] = [
   "flemings-left-hand-rule",
   "flemings-right-hand-rule",
   "electromagnetic-induction",
-  "electric-motor",
   "electric-generator",
 ];
 

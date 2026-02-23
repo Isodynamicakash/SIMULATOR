@@ -64,8 +64,6 @@ export default function HighSchoolPhysicsGravitationFluidsPage() {
       breadcrumbs={breadcrumbs}
       title="Gravitation and Fluids"
       fullWidth
-      titleClassName="text-4xl sm:text-5xl font-extrabold tracking-wide text-white drop-shadow-sm border-b border-cyan-500/30 pb-2 inline-block"
-      contentClassName="mt-3"
     >
       {/* Hero: intro (left) + key concepts (right on desktop), match Electricity */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-0 mb-3 lg:mb-4 lg:items-center">
